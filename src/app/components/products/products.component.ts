@@ -18,16 +18,18 @@ export class ProductsComponent implements OnInit {
   showProductDetail = false;
   productChosen: Product = {
     id: '',
-  title: '',
-  price: 0,
-  images: [],
-  
-  category: {
-    id:'',
-    name:'',
-  },
-  description:'',
-  }
+    title: '',
+    price: 0,
+    images: [],
+
+    category: {
+      id: '',
+      name: '',
+    },
+    description: '',
+  };
+  limit = 10;
+  offset = 0;
 
   constructor(
     private storeService: StoreService,
@@ -37,10 +39,10 @@ export class ProductsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.productsService.getAllProducts()
-    .subscribe(data => {
-      this.products = data;
-    });
+    this.productsService.getProductsByPage(10, 0)
+      .subscribe(data => {
+        this.products = data;
+      });
   }
 
   onAddToShoppingCart(product: Product) {
@@ -48,50 +50,57 @@ export class ProductsComponent implements OnInit {
     this.total = this.storeService.getTotal();
   }
 
-  toggleProductDetail(){
+  toggleProductDetail() {
     this.showProductDetail = !this.showProductDetail;
   }
 
-  onShowDetail(id: string){
+  onShowDetail(id: string) {
     this.productsService.getProduct(id)
-    .subscribe(data => {
-      this.toggleProductDetail();
-      this.productChosen = data;
-    });
+      .subscribe(data => {
+        this.toggleProductDetail();
+        this.productChosen = data;
+      });
   }
 
-  createNewProduct(){
-    const  product: CreateProductDTO = {
+  createNewProduct() {
+    const product: CreateProductDTO = {
       title: 'Nuevo Producto',
-      description:'bla bla',
+      description: 'bla bla',
       images: [''],
       price: 1000,
       categoryId: 2
     }
     this.productsService.create(product)
-    .subscribe(data => {
-      console.log('created',data);
-    });
+      .subscribe(data => {
+        console.log('created', data);
+      });
     ;
   }
-  updateProduct(){
-    const changes: UpdateProductDTO= {
+  updateProduct() {
+    const changes: UpdateProductDTO = {
       title: 'nuevo title'
     }
     const id = this.productChosen.id;
-    this.productsService.update(id,changes)
-    .subscribe(data => {
-      const productIndex = this.products.findIndex(item => item.id === this.productChosen.id);
-      this.products[productIndex] = data;
-    });
+    this.productsService.update(id, changes)
+      .subscribe(data => {
+        const productIndex = this.products.findIndex(item => item.id === this.productChosen.id);
+        this.products[productIndex] = data;
+      });
   }
-  deleteProduct (){
+  deleteProduct() {
     const id = this.productChosen.id;
     this.productsService.delete(id)
-    .subscribe(() => {
-      const productIndex = this.products.findIndex(item => item.id === this.productChosen.id);
-      this.products.splice(productIndex,1);
-      this.showProductDetail = false;
-    });
+      .subscribe(() => {
+        const productIndex = this.products.findIndex(item => item.id === this.productChosen.id);
+        this.products.splice(productIndex, 1);
+        this.showProductDetail = false;
+      });
+  }
+  loadMore() {
+    this.productsService.getProductsByPage(this.limit, this.offset)
+      .subscribe(data => {
+        this.products = this.products.concat(data);
+        this.offset += this.limit;
+      });
   }
 }
