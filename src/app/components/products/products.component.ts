@@ -1,9 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-
+import {switchMap} from 'rxjs/operators';
 import { CreateProductDTO, Product, UpdateProductDTO } from '../../models/product.model';
 
 import { StoreService } from '../../services/store.service';
 import { ProductsService } from '../../services/products.service';
+import Swal from 'sweetalert2';
+import { ThisReceiver } from '@angular/compiler';
+import { zip } from 'rxjs';
 
 @Component({
   selector: 'app-products',
@@ -30,6 +33,7 @@ export class ProductsComponent implements OnInit {
   };
   limit = 10;
   offset = 0;
+  statusDetail: 'loading'|'success'|'error' | 'init' = 'init';
 
   constructor(
     private storeService: StoreService,
@@ -39,9 +43,11 @@ export class ProductsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.productsService.getProductsByPage(10, 0)
+    this.productsService.getAllProducts(this.limit,this.offset)
+    //this.productsService.getProductsByPage(10, 0)
       .subscribe(data => {
         this.products = data;
+        this.offset += this.limit;
       });
   }
 
@@ -55,13 +61,37 @@ export class ProductsComponent implements OnInit {
   }
 
   onShowDetail(id: string) {
+    this.statusDetail = 'loading';
     this.productsService.getProduct(id)
       .subscribe(data => {
         this.toggleProductDetail();
         this.productChosen = data;
+        this.statusDetail = 'success';
+      }, errorMsg =>{
+        this.statusDetail = 'error';
+        Swal.fire({
+          title: errorMsg,
+          text: errorMsg,
+          icon: 'error',
+          confirmButtonText:'Aceptar'
+        })
       });
   }
 
+  readAndUpdate(id:string){
+    this.productsService.getProduct(id)
+    .pipe(
+      switchMap((product) =>  this.productsService.update(product.id,{title:'change'}),)
+      ).subscribe(data =>{
+        console.log(data);
+      });
+      this.productsService.fetchReadAndUpdate(id,{title:'change'})
+    .subscribe(response =>{
+      const read = response[0];
+      const update = response[1];
+    });
+    
+  }
   createNewProduct() {
     const product: CreateProductDTO = {
       title: 'Nuevo Producto',
